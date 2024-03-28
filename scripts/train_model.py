@@ -1,9 +1,9 @@
 
-modelName = 'speechBaseline4'
+modelName = 'speechBaseline4_run2'
 
 args = {}
-args['outputDir'] = '/oak/stanford/groups/henderj/stfan/logs/speech_logs/' + modelName
-args['datasetPath'] = '/oak/stanford/groups/henderj/fwillett/speech/ptDecoder_ctc'
+args['outputDir'] = '/scratch/users/dzoltow/SpeechBCI/logs/' + modelName
+args['datasetPath'] = '/scratch/users/dzoltow/SpeechBCI/competitionData/ptDecoder_ctc'
 args['seqLen'] = 150
 args['maxTimeSeriesLen'] = 1200
 args['batchSize'] = 64

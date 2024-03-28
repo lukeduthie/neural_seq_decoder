@@ -131,7 +131,7 @@ trainDatasets = []
 testDatasets = []
 competitionDatasets = []
 
-dataDir = '/oak/stanford/groups/henderj/fwillett/speechPaperRelease_08_20/competitionData'
+dataDir = '/scratch/users/dzoltow/SpeechBCI/competitionData'
 
 for dayIdx in range(len(sessionNames)):
     print(dayIdx)
