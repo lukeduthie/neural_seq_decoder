@@ -129,7 +129,10 @@ class MambaDecoder(nn.Module):
         self,
         neural_dim,
         n_classes,
-        hidden_dim,
+        d_model,
+        d_state,
+        d_conv,
+        expand_factor,
         layer_dim,
         nDays=24,
         dropout=0,
@@ -209,13 +212,16 @@ class MambaDecoder(nn.Module):
                 thisLayer.weight + torch.eye(neural_dim)
             )
 
+        # Linear input layer
+        self.linear_input = nn.Linear(neural_dim*kernelLen, d_model)
+
         # rnn outputs
         if self.bidirectional:
             self.fc_decoder_out = nn.Linear(
-                hidden_dim * 2, n_classes + 1
+                neural_dim * 2, n_classes + 1
             )  # +1 for CTC blank
         else:
-            self.fc_decoder_out = nn.Linear(hidden_dim, n_classes + 1)  # +1 for CTC blank
+            self.fc_decoder_out = nn.Linear(d_model, n_classes + 1)  # +1 for CTC blank
 
     def forward(self, neuralInput, dayIdx):
         neuralInput = torch.permute(neuralInput, (0, 2, 1))
@@ -231,10 +237,10 @@ class MambaDecoder(nn.Module):
 
         # stride/kernel
         stridedInputs = torch.permute(
-            self.unfolder(
-                torch.unsqueeze(torch.permute(transformedNeural, (0, 2, 1)), 3)
-            ),
-            (0, 2, 1),
+           self.unfolder(
+               torch.unsqueeze(torch.permute(transformedNeural, (0, 2, 1)), 3)
+           ),
+           (0, 2, 1),
         )
 
         # apply RNN layer
@@ -253,7 +259,10 @@ class MambaDecoder(nn.Module):
         #         device=self.device,
         #     ).requires_grad_()
 
-        hid = self.mambda_decoder(stridedInputs)
+        mamba_in = self.linear_input(stridedInputs)
+        hid = self.mamba_decoder(mamba_in)
+        #import pdb; pdb.set_trace()
+        #hid = self.mamba_decoder(transformedNeural)
 
         # get seq
         seq_out = self.fc_decoder_out(hid)

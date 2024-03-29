@@ -68,6 +68,7 @@ def trainModel(args):
         args["datasetPath"],
         args["batchSize"],
     )
+    print("Training Mamba...")
 
     model = MambaDecoder(
         neural_dim=args["nInputFeatures"],

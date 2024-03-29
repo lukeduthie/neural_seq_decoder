@@ -1,5 +1,5 @@
 
-modelName = 'speechBaseline4_run2'
+modelName = 'speechBaseline4_run3'
 
 args = {}
 args['outputDir'] = '/scratch/users/dzoltow/SpeechBCI/logs/' + modelName
