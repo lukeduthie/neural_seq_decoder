@@ -150,6 +150,32 @@ def trainModel(args):
         # Eval
         if batch % 100 == 0:
             with torch.no_grad():
+                # get train batch CER
+                adjustedLens = ((X_len - model.kernelLen) / model.strideLen).to(
+                    torch.int32
+                )
+                total_edit_distance = 0
+                total_seq_length = 0
+                for iterIdx in range(pred.shape[0]):
+                    decodedSeq = torch.argmax(
+                        torch.tensor(pred[iterIdx, 0 : adjustedLens[iterIdx], :]),
+                        dim=-1,
+                    )  # [num_seq,]
+                    decodedSeq = torch.unique_consecutive(decodedSeq, dim=-1)
+                    decodedSeq = decodedSeq.cpu().detach().numpy()
+                    decodedSeq = np.array([i for i in decodedSeq if i != 0])
+
+                    trueSeq = np.array(
+                        y[iterIdx][0 : y_len[iterIdx]].cpu().detach()
+                    )
+
+                    matcher = SequenceMatcher(
+                        a=trueSeq.tolist(), b=decodedSeq.tolist()
+                    )
+                    total_edit_distance += matcher.distance()
+                    total_seq_length += len(trueSeq)
+                train_cer = total_edit_distance / total_seq_length
+                
                 model.eval()
                 allLoss = []
                 total_edit_distance = 0
@@ -200,7 +226,7 @@ def trainModel(args):
 
                 endTime = time.time()
                 print(
-                    f"batch {batch}, ctc loss: {avgDayLoss:>7f}, cer: {cer:>7f}, time/batch: {(endTime - startTime)/100:>7.3f}"
+                    f"batch {batch}, ctc loss: {avgDayLoss:>7f}, train_cer: {train_cer:>7f}, cer: {cer:>7f}, time/batch: {(endTime - startTime)/100:>7.3f}"
                 )
                 startTime = time.time()
 
@@ -222,12 +248,15 @@ def loadModel(modelDir, nInputLayers=24, device="cuda"):
     with open(modelDir + "/args", "rb") as handle:
         args = pickle.load(handle)
 
-    model = GRUDecoder(
+    model = MambaDecoder(
         neural_dim=args["nInputFeatures"],
+        d_model=args["d_model"],
+        d_state=args["d_state"],
+        d_conv=args["d_conv"],
+        expand_factor=args["expand_factor"],
         n_classes=args["nClasses"],
-        hidden_dim=args["nUnits"],
         layer_dim=args["nLayers"],
-        nDays=nInputLayers,
+        nDays=len(loadedData["train"]),
         dropout=args["dropout"],
         device=device,
         strideLen=args["strideLen"],

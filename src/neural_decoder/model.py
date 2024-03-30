@@ -38,9 +38,10 @@ class GRUDecoder(nn.Module):
         self.unfolder = torch.nn.Unfold(
             (self.kernelLen, 1), dilation=1, padding=0, stride=self.strideLen
         )
-        self.gaussianSmoother = GaussianSmoothing(
-            neural_dim, 20, self.gaussianSmoothWidth, dim=1
-        )
+        if self.gaussianSmoothWidth > 0:
+            self.gaussianSmoother = GaussianSmoothing(
+                neural_dim, 20, self.gaussianSmoothWidth, dim=1
+            )
         self.dayWeights = torch.nn.Parameter(torch.randn(nDays, neural_dim, neural_dim))
         self.dayBias = torch.nn.Parameter(torch.zeros(nDays, 1, neural_dim))
 
@@ -82,9 +83,11 @@ class GRUDecoder(nn.Module):
             self.fc_decoder_out = nn.Linear(hidden_dim, n_classes + 1)  # +1 for CTC blank
 
     def forward(self, neuralInput, dayIdx):
-        neuralInput = torch.permute(neuralInput, (0, 2, 1))
-        neuralInput = self.gaussianSmoother(neuralInput)
-        neuralInput = torch.permute(neuralInput, (0, 2, 1))
+
+        if self.gaussianSmoothWidth > 0:
+            neuralInput = torch.permute(neuralInput, (0, 2, 1))
+            neuralInput = self.gaussianSmoother(neuralInput)
+            neuralInput = torch.permute(neuralInput, (0, 2, 1))
 
         # apply day layer
         dayWeights = torch.index_select(self.dayWeights, 0, dayIdx)
@@ -163,9 +166,10 @@ class MambaDecoder(nn.Module):
         self.unfolder = torch.nn.Unfold(
             (self.kernelLen, 1), dilation=1, padding=0, stride=self.strideLen
         )
-        self.gaussianSmoother = GaussianSmoothing(
-            neural_dim, 20, self.gaussianSmoothWidth, dim=1
-        )
+        if self.gaussianSmoothWidth > 0:
+            self.gaussianSmoother = GaussianSmoothing(
+                neural_dim, 20, self.gaussianSmoothWidth, dim=1
+            )
         self.dayWeights = torch.nn.Parameter(torch.randn(nDays, neural_dim, neural_dim))
         self.dayBias = torch.nn.Parameter(torch.zeros(nDays, 1, neural_dim))
 
@@ -182,12 +186,17 @@ class MambaDecoder(nn.Module):
         #     bidirectional=self.bidirectional,
         # )
 
+        if self.bidirectional:
+            d_mamba = d_model * 2
+        else:
+            d_mamba = d_model
+
         ModuleList = []
         for i in range(layer_dim):
             ModuleList.append(
                 Mamba(
                 # This module uses roughly 3 * expand * d_model^2 parameters
-                d_model=d_model, # Model dimension d_model
+                d_model=d_mamba, # Model dimension d_model
                 d_state=d_state,  # SSM state expansion factor
                 d_conv=d_conv,    # Local convolution width
                 expand=expand_factor,    # Block expansion factor
@@ -213,20 +222,22 @@ class MambaDecoder(nn.Module):
             )
 
         # Linear input layer
-        self.linear_input = nn.Linear(neural_dim*kernelLen, d_model)
-
+        if self.bidirectional:
+            self.linear_input = nn.Linear(neural_dim*kernelLen * 2, d_model * 2)
+        else:
+            self.linear_input = nn.Linear(neural_dim*kernelLen, d_model)
+        
         # rnn outputs
         if self.bidirectional:
-            self.fc_decoder_out = nn.Linear(
-                neural_dim * 2, n_classes + 1
-            )  # +1 for CTC blank
+            self.fc_decoder_out = nn.Linear(d_model * 2, n_classes + 1)
         else:
             self.fc_decoder_out = nn.Linear(d_model, n_classes + 1)  # +1 for CTC blank
 
     def forward(self, neuralInput, dayIdx):
-        neuralInput = torch.permute(neuralInput, (0, 2, 1))
-        neuralInput = self.gaussianSmoother(neuralInput)
-        neuralInput = torch.permute(neuralInput, (0, 2, 1))
+        if self.gaussianSmoothWidth > 0:
+            neuralInput = torch.permute(neuralInput, (0, 2, 1))
+            neuralInput = self.gaussianSmoother(neuralInput)
+            neuralInput = torch.permute(neuralInput, (0, 2, 1))
 
         # apply day layer
         dayWeights = torch.index_select(self.dayWeights, 0, dayIdx)
@@ -259,9 +270,13 @@ class MambaDecoder(nn.Module):
         #         device=self.device,
         #     ).requires_grad_()
 
+        if self.bidirectional:
+            stridedFlip = torch.flip(stridedInputs, dims=(1,))
+            stridedInputs = torch.cat((stridedInputs, stridedFlip), dim=-1)
+        #import pdb; pdb.set_trace()
+
         mamba_in = self.linear_input(stridedInputs)
         hid = self.mamba_decoder(mamba_in)
-        #import pdb; pdb.set_trace()
         #hid = self.mamba_decoder(transformedNeural)
 
         # get seq
