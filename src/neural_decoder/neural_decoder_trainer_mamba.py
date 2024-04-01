@@ -91,16 +91,44 @@ def trainModel(args):
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=args["lrStart"],
-        betas=(0.9, 0.999),
+        betas=(0.9, args['adamBeta2']),
         eps=0.1,
         weight_decay=args["l2_decay"],
     )
-    scheduler = torch.optim.lr_scheduler.LinearLR(
+    # scheduler = torch.optim.lr_scheduler.LinearLR(
+    #     optimizer,
+    #     start_factor=1.0,
+    #     end_factor=args["lrEnd"] / args["lrStart"],
+    #     total_iters=args["nBatch"],
+    # )
+
+    # warmup learning rate for nWarmup iters (min = 1)
+    scheduler1 = torch.optim.lr_scheduler.LinearLR(
         optimizer,
-        start_factor=1.0,
-        end_factor=args["lrEnd"] / args["lrStart"],
-        total_iters=args["nBatch"],
+        start_factor=1.0 / args["nWarmup"],
+        end_factor=1.0,
+        total_iters=args["nWarmup"],
     )
+    if args['cosine_anneal']:
+        scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=args['nBatch'] - args['nWarmup'],
+            eta_min=args['lrMin'],
+        )
+    else:
+        scheduler2 = torch.optim.lr_scheduler.LinearLR(
+            optimizer,
+            start_factor=1.0,
+            end_factor=args["lrEnd"] / args["lrStart"],
+            total_iters=args["nBatch"] - args['nWarmup'],
+        )
+
+    scheduler = torch.optim.lr_scheduler.SequentialLR(
+        optimizer, 
+        schedulers=[scheduler1, scheduler2], 
+        milestones=[args["nWarmup"]]
+    )
+
 
     # --train--
     testLoss = []

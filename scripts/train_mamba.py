@@ -27,6 +27,12 @@ args["d_model"] = 1024 # 256
 args["d_state"] = 16
 args["d_conv"] = 4
 args["expand_factor"] = 1 # 4
+args['adamBeta2'] = 0.999 # could try 0.95
+args['nWarmup'] = 1
+args['cosineAnneal'] = True
+args['lrMin'] = 1e-6 # min for cosine annealing
+
+
 
 from neural_decoder.neural_decoder_trainer_mamba import trainModel
 
