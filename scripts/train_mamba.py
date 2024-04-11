@@ -2,8 +2,8 @@
 modelName = 'Mamba_Run2'
 
 args = {}
-args['outputDir'] = '/scratch/users/dzoltow/SpeechBCI/logs/' + modelName
-args['datasetPath'] = '/scratch/users/dzoltow/SpeechBCI/competitionData/ptDecoder_ctc'
+args['outputDir'] = '/scratch/users/mkounga/SpeechBCI/logs/' + modelName
+args['datasetPath'] = '/scratch/users/mkounga/SpeechBCI/competitionData/ptDecoder_ctc'
 args['seqLen'] = 150
 args['maxTimeSeriesLen'] = 1200
 args['batchSize'] = 64
@@ -21,7 +21,7 @@ args['constantOffsetSD'] = 0.2
 args['gaussianSmoothWidth'] = 0.0
 args['strideLen'] = 1 # 4
 args['kernelLen'] = 1 # 32
-args['bidirectional'] = True
+args['bidirectional'] = False
 args['l2_decay'] = 1e-5
 args["d_model"] = 1024 # 256
 args["d_state"] = 16

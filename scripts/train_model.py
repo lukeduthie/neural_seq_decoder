@@ -2,8 +2,8 @@
 modelName = 'speechBaseline4_run3'
 
 args = {}
-args['outputDir'] = '/scratch/users/dzoltow/SpeechBCI/logs/' + modelName
-args['datasetPath'] = '/scratch/users/dzoltow/SpeechBCI/competitionData/ptDecoder_ctc'
+args['outputDir'] = '/scratch/users/mkounga/SpeechBCI/logs/' + modelName
+args['datasetPath'] = '/scratch/users/mkounga/SpeechBCI/competitionData/ptDecoder_ctc'
 args['seqLen'] = 150
 args['maxTimeSeriesLen'] = 1200
 args['batchSize'] = 64

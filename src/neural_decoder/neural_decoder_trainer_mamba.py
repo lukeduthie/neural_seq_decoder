@@ -109,20 +109,27 @@ def trainModel(args):
         end_factor=1.0,
         total_iters=args["nWarmup"],
     )
-    if args['cosine_anneal']:
-        scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer,
-            T_max=args['nBatch'] - args['nWarmup'],
-            eta_min=args['lrMin'],
-        )
-    else:
-        scheduler2 = torch.optim.lr_scheduler.LinearLR(
-            optimizer,
-            start_factor=1.0,
-            end_factor=args["lrEnd"] / args["lrStart"],
-            total_iters=args["nBatch"] - args['nWarmup'],
-        )
+    # if args['cosine_anneal']:
+    #     scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(
+    #         optimizer,
+    #         T_max=args['nBatch'] - args['nWarmup'],
+    #         eta_min=args['lrMin'],
+    #     )
+    # else:
+    #     scheduler2 = torch.optim.lr_scheduler.LinearLR(
+    #         optimizer,
+    #         start_factor=1.0,
+    #         end_factor=args["lrEnd"] / args["lrStart"],
+    #         total_iters=args["nBatch"] - args['nWarmup'],
+    #    )
 
+    scheduler2 = torch.optim.lr_scheduler.LinearLR(
+        optimizer,
+        start_factor=1.0,
+        end_factor=args["lrEnd"] / args["lrStart"],
+        total_iters=args["nBatch"] - args['nWarmup'],
+   )
+    
     scheduler = torch.optim.lr_scheduler.SequentialLR(
         optimizer, 
         schedulers=[scheduler1, scheduler2], 
