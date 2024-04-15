@@ -1,39 +1,43 @@
 
-modelName = 'Mamba_Run2'
 
-args = {}
-args['outputDir'] = '/scratch/users/mkounga/SpeechBCI/logs/' + modelName
-args['datasetPath'] = '/scratch/users/mkounga/SpeechBCI/competitionData/ptDecoder_ctc'
-args['seqLen'] = 150
-args['maxTimeSeriesLen'] = 1200
-args['batchSize'] = 64
-args['lrStart'] = 1e-2 #0.02
-args['lrEnd'] = 1e-2 #0.02
-args['nUnits'] = 1024
-args['nBatch'] = 20000 #3000
-args['nLayers'] = 2
-args['seed'] = 15 # 0 
-args['nClasses'] = 40
-args['nInputFeatures'] = 256
-args['dropout'] = 0.4
-args['whiteNoiseSD'] = 0.8
-args['constantOffsetSD'] = 0.2
-args['gaussianSmoothWidth'] = 0.0
-args['strideLen'] = 1 # 4
-args['kernelLen'] = 1 # 32
-args['bidirectional'] = False
-args['l2_decay'] = 1e-5
-args["d_model"] = 1024 # 256
-args["d_state"] = 16
-args["d_conv"] = 4
-args["expand_factor"] = 1 # 4
-args['adamBeta2'] = 0.999 # could try 0.95
-args['nWarmup'] = 1
-args['cosineAnneal'] = True
-args['lrMin'] = 1e-6 # min for cosine annealing
+def train(args):
 
+    new_args = {}
 
+    new_args['USE_WANDB'] = args.USE_WANDB
+    new_args['wandb_entity'] = args.wandb_entity
+    new_args['wandb_project'] = args.wandb_project
+    new_args['USE_WANDB'] = args.USE_WANDB
+    new_args['outputDir'] = args.outputDir
+    new_args['datasetPath'] = args.datasetPath
+    new_args['seqLen'] = args.seqLen
+    new_args['maxTimeSeriesLen'] = args.maxTimeSeriesLen
+    new_args['batchSize'] = args.batchSize
+    new_args['lrStart'] = args.lrStart #0.02
+    new_args['lrEnd'] = args.lrEnd #0.02
+    new_args['nUnits'] = args.nUnits
+    new_args['nBatch'] = args.nBatch #3000
+    new_args['nLayers'] = args.nLayers
+    new_args['seed'] = args.seed # 0 
+    new_args['nClasses'] = args.nClasses
+    new_args['nInputFeatures'] = args.nInputFeatures
+    new_args['dropout'] = args.dropout
+    new_args['whiteNoiseSD'] = args.whiteNoiseSD
+    new_args['constantOffsetSD'] = args.constantOffsetSD
+    new_args['gaussianSmoothWidth'] = args.gaussianSmoothWidth
+    new_args['strideLen'] = args.strideLen # 4
+    new_args['kernelLen'] = args.kernelLen # 32
+    new_args['bidirectional'] = args.bidirectional
+    new_args['l2_decay'] = args.l2_decay
+    new_args["d_model"] = args.d_model # 256
+    new_args["d_state"] = args.d_state
+    new_args["d_conv"] = args.d_conv
+    new_args["expand_factor"] = args.expand_factor # 4
+    new_args['adamBeta2'] =args.adamBeta2 # could try 0.95
+    new_args['nWarmup'] = args.nWarmup
+    new_args['cosineAnneal'] = args.cosineAnneal
+    new_args['lrMin'] = args.lrMin # min for cosine annealing
 
-from neural_decoder.neural_decoder_trainer_mamba import trainModel
+    from neural_decoder.neural_decoder_trainer_mamba import trainModel
 
-trainModel(args)
+    trainModel(new_args)

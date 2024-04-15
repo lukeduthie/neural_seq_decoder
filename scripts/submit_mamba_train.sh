@@ -17,5 +17,7 @@ ml gcc/10.1.0
 ml load cudnn/8.6.0.163
 ml load cuda/11.7.1
 
-srun -N 1 -n 1 -o train_mamba.out python3 -u train_mamba.py &
-wait
+# srun -N 1 -n 1 -o train_mamba.out python3 -u train_mamba.py &
+# wait
+
+srun -N 1 -n 1 -o train_mamba.out python /home/groups/swl1/mkounga/code/neural_seq_decoder/run_train_mamba.py

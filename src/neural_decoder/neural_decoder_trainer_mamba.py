@@ -1,6 +1,7 @@
 import os
 import pickle
 import time
+import wandb
 
 from edit_distance import SequenceMatcher
 import hydra
@@ -60,6 +61,12 @@ def trainModel(args):
     torch.manual_seed(args["seed"])
     np.random.seed(args["seed"])
     device = "cuda"
+    
+    if args["USE_WANDB"]:
+        # Make wandb config dictionary
+        wandb.init(project=args["wandb_project"], job_type='model_training', config=args, entity=args["wandb_entity"])
+    else:
+        wandb.init(mode='offline')
 
     with open(args["outputDir"] + "/args", "wb") as file:
         pickle.dump(args, file)
@@ -140,6 +147,9 @@ def trainModel(args):
     # --train--
     testLoss = []
     testCER = []
+    best_train_loss = 0.0
+    best_train_CER = 1.0
+    best_batch = 0
     startTime = time.time()
     for batch in range(args["nBatch"]):
         model.train()
@@ -263,7 +273,37 @@ def trainModel(args):
                 print(
                     f"batch {batch}, ctc loss: {avgDayLoss:>7f}, train_cer: {train_cer:>7f}, cer: {cer:>7f}, time/batch: {(endTime - startTime)/100:>7.3f}"
                 )
+                train_loss = avgDayLoss
+                train_CER = train_cer
+                raw_CER = cer
+                
+                if train_loss < best_train_loss:
+                    best_train_loss = train_loss
+                    best_batch = batch / 100
+                
+                if train_CER < best_train_CER:
+                    best_train_CER = train_CER
+                    best_batch = batch / 100                
+                
                 startTime = time.time()
+                wandb.log(
+                    {
+                        "Training Loss": train_loss,
+                        "Training CER": train_CER,
+                        "CER": raw_CER,
+                        "Batch": batch / 100
+                        "time/batch": (endTime - startTime)/100,
+                        # "Learning rate count": lr_count,
+                        # "Opt acc": opt_acc,
+                        # "lr": state.opt_state.inner_states['regular'].inner_state.hyperparams['learning_rate'],
+                        # "ssm_lr": state.opt_state.inner_states['ssm'].inner_state.hyperparams['learning_rate']
+                    }
+                )
+                wandb.run.summary["Training Loss"] = train_loss
+                wandb.run.summary["Training CER"] = train_CER
+                wandb.run.summary["Best Batch"] = best_batch
+                wandb.run.summary["Best Training Loss"] = best_train_loss
+                wandb.run.summary["Best Training CER"] = best_train_CER    
 
             if len(testCER) > 0 and cer < np.min(testCER):
                 torch.save(model.state_dict(), args["outputDir"] + "/modelWeights")
