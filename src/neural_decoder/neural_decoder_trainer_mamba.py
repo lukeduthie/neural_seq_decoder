@@ -147,6 +147,7 @@ def trainModel(args):
     # --train--
     testLoss = []
     testCER = []
+    early_end = 0
     best_train_loss = 0.0
     best_train_CER = 1.0
     best_batch = 0
@@ -270,8 +271,9 @@ def trainModel(args):
                 cer = total_edit_distance / total_seq_length
 
                 endTime = time.time()
+                
                 print(
-                    f"batch {batch}, ctc loss: {avgDayLoss:>7f}, train_cer: {train_cer:>7f}, cer: {cer:>7f}, time/batch: {(endTime - startTime)/100:>7.3f}"
+                    f"batch {batch/100}, ctc loss: {avgDayLoss:>7f}, train_cer: {train_cer:>7f}, test_cer: {cer:>7f}, time/batch: {(endTime - startTime)/100:>7.3f}"
                 )
                 train_loss = avgDayLoss
                 train_CER = train_cer
@@ -290,8 +292,8 @@ def trainModel(args):
                     {
                         "Training Loss": train_loss,
                         "Training CER": train_CER,
-                        "CER": raw_CER,
-                        "Batch": batch / 100
+                        "Test CER": raw_CER,
+                        "Batch": batch / 100,
                         "time/batch": (endTime - startTime)/100,
                         # "Learning rate count": lr_count,
                         # "Opt acc": opt_acc,
@@ -307,6 +309,9 @@ def trainModel(args):
 
             if len(testCER) > 0 and cer < np.min(testCER):
                 torch.save(model.state_dict(), args["outputDir"] + "/modelWeights")
+                early_end = 0
+            else:
+                early_end = early_end + 1
             testLoss.append(avgDayLoss)
             testCER.append(cer)
 
@@ -317,6 +322,9 @@ def trainModel(args):
             with open(args["outputDir"] + "/trainingStats", "wb") as file:
                 pickle.dump(tStats, file)
 
+            # Make this a hyperparameter in the future
+            if early_end > 15:
+                break
 
 def loadModel(modelDir, nInputLayers=24, device="cuda"):
     modelWeightPath = modelDir + "/modelWeights"

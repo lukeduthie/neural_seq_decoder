@@ -19,8 +19,8 @@ args['dropout'] = 0.4
 args['whiteNoiseSD'] = 0.8
 args['constantOffsetSD'] = 0.2
 args['gaussianSmoothWidth'] = 2.0
-args['strideLen'] = 4
-args['kernelLen'] = 32
+args['strideLen'] = 1
+args['kernelLen'] = 1
 args['bidirectional'] = True
 args['l2_decay'] = 1e-5
 

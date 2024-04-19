@@ -1,8 +1,14 @@
-
+import re
 
 def train(args):
 
     new_args = {}
+
+    def extract_numbers(s):
+        # Use regular expressions to find all substrings that are numbers
+        numbers = re.findall(r'\d+', s)  # '\d+' matches sequences of digits
+        # Convert these number strings to integers
+        return [int(num) for num in numbers]
 
     new_args['USE_WANDB'] = args.USE_WANDB
     new_args['wandb_entity'] = args.wandb_entity
@@ -14,7 +20,7 @@ def train(args):
     new_args['maxTimeSeriesLen'] = args.maxTimeSeriesLen
     new_args['batchSize'] = args.batchSize
     new_args['lrStart'] = args.lrStart #0.02
-    new_args['lrEnd'] = args.lrEnd #0.02
+    new_args['lrEnd'] = args.lrStart #args.lrEnd #0.02
     new_args['nUnits'] = args.nUnits
     new_args['nBatch'] = args.nBatch #3000
     new_args['nLayers'] = args.nLayers
@@ -25,8 +31,8 @@ def train(args):
     new_args['whiteNoiseSD'] = args.whiteNoiseSD
     new_args['constantOffsetSD'] = args.constantOffsetSD
     new_args['gaussianSmoothWidth'] = args.gaussianSmoothWidth
-    new_args['strideLen'] = args.strideLen # 4
-    new_args['kernelLen'] = args.kernelLen # 32
+    new_args['strideLen'] = extract_numbers(args.strideLen)[0] # 4
+    new_args['kernelLen'] = extract_numbers(args.strideLen)[1] #args.kernelLen # 32
     new_args['bidirectional'] = args.bidirectional
     new_args['l2_decay'] = args.l2_decay
     new_args["d_model"] = args.d_model # 256

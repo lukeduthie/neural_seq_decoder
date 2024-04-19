@@ -4,6 +4,7 @@ from torch import nn
 from .augmentations import GaussianSmoothing
 
 from mamba_ssm import Mamba
+from mamba_ssm.ops.selective_scan_interface import selective_scan_fn
 
 class GRUDecoder(nn.Module):
     def __init__(
@@ -137,13 +138,13 @@ class MambaDecoder(nn.Module):
         d_conv,
         expand_factor,
         layer_dim,
-        nDays=24,
-        dropout=0,
+        nDays,
+        dropout,
+        strideLen,
+        kernelLen,
+        gaussianSmoothWidth,
+        bidirectional,
         device="cuda",
-        strideLen=4,
-        kernelLen=14,
-        gaussianSmoothWidth=0,
-        bidirectional=False,
     ):
         super(MambaDecoder, self).__init__()
 
@@ -262,13 +263,28 @@ class MambaDecoder(nn.Module):
 #         d_conv,
 #         expand_factor,
 #         layer_dim,
-#         nDays=24,
-#         dropout=0,
-#         device="cuda",
-#         strideLen=4,
-#         kernelLen=14,
-#         gaussianSmoothWidth=0,
-#         bidirectional=False,
+#         nDays,
+#         dropout,
+#         strideLen,
+#         kernelLen,
+#         gaussianSmoothWidth,
+#         bidirectional,
+#         device="cuda",        
+# #         self,
+# #         neural_dim,
+# #         n_classes,
+# #         d_model,
+# #         d_state,
+# #         d_conv,
+# #         expand_factor,
+# #         layer_dim,
+# #         nDays=24,
+# #         dropout=0,
+# #         device="cuda",
+# #         strideLen=4,
+# #         kernelLen=14,
+# #         gaussianSmoothWidth=0,
+# #         bidirectional=False,        
 #     ):
 #         super(MambaDecoder, self).__init__()
 
@@ -304,9 +320,11 @@ class MambaDecoder(nn.Module):
         
 #         d_mamba = d_model
         
-#         ModuleList = []
+#         ModuleList_forward = []
+#         ModuleList_backward = []
+#         ModuleList_mixingLayer = []
 #         for i in range(layer_dim):
-#             ModuleList.append(
+#             ModuleList_forward.append(
 #                 Mamba(
 #                 # This module uses roughly 3 * expand * d_model^2 parameters
 #                 d_model=d_mamba, # Model dimension d_model
@@ -315,9 +333,23 @@ class MambaDecoder(nn.Module):
 #                 expand=expand_factor,    # Block expansion factor
 #                 ).to(self.device)
 #             )
-#             ModuleList.append(torch.nn.Dropout(p=self.dropout).to(self.device))
-        
-#         self.mamba_decoder_layers = ModuleList
+#             ModuleList_backward.append(
+#                 Mamba(
+#                 # This module uses roughly 3 * expand * d_model^2 parameters
+#                 d_model=d_mamba, # Model dimension d_model
+#                 d_state=d_state,  # SSM state expansion factor
+#                 d_conv=d_conv,    # Local convolution width
+#                 expand=expand_factor,    # Block expansion factor
+#                 ).to(self.device)
+#             )
+#             ModuleList_mixingLayer.append(
+#                 nn.Sequential(*[nn.Linear(d_model * 2, d_model * 2),
+#                                torch.nn.Dropout(p=self.dropout)]).to(self.device)
+#             )
+
+#         self.mamba_forward = ModuleList_forward
+#         self.mamba_backward = ModuleList_backward
+#         self.mamba_mixing = ModuleList_mixingLayer
 
 #         # Input layers
 #         for x in range(nDays):
@@ -333,17 +365,8 @@ class MambaDecoder(nn.Module):
 #         self.linear_input = nn.Linear(neural_dim*kernelLen, d_model)
         
 #         # rnn outputs
-#         self.fc_decoder_out = nn.Linear(d_model, n_classes + 1)
-        
-#     def sequential(self, ModuleList, x):
-#         if self.bidirectional:
-#             for layer in ModuleList:
-#                 x = layer(x)        
-#         else:    
-#             for layer in ModuleList:
-#                 x = layer(x)
-#         return x
-    
+#         self.fc_decoder_out = nn.Linear(d_model * 2, n_classes + 1)
+          
     
 #     def forward(self, neuralInput, dayIdx):
         
@@ -367,9 +390,18 @@ class MambaDecoder(nn.Module):
 #            (0, 2, 1),
 #         )
 
-#         mamba_in = self.linear_input(stridedInputs)
+#         stridedInputs = self.linear_input(stridedInputs)
         
-#         hid = self.sequential(self.mamba_decoder_layers, mamba_in)
-        
-#         seq_out = self.fc_decoder_out(hid)
+#         if self.bidirectional:
+#            stridedFlip = torch.flip(stridedInputs, dims=(1,))
+#            x = torch.cat((stridedInputs, stridedFlip), dim=-1)
+         
+#            for forward, backward, mixing in zip(
+#                self.mamba_forward, self.mamba_backward, self.mamba_mixing):
+#                 x_forward = forward(x[:,:,:self.d_model])
+#                 x_backward = backward(x[:,:,self.d_model:])    
+#                 x = torch.cat((x_forward, x_backward), dim=-1)
+#                 x = mixing(x)
+                
+#         seq_out = self.fc_decoder_out(x)
 #         return seq_out
