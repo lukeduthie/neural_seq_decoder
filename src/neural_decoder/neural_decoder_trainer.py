@@ -59,7 +59,8 @@ def trainModel(args):
     os.makedirs(args["outputDir"], exist_ok=True)
     torch.manual_seed(args["seed"])
     np.random.seed(args["seed"])
-    device = "cuda"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
 
     with open(args["outputDir"] + "/args", "wb") as file:
         pickle.dump(args, file)
@@ -125,15 +126,35 @@ def trainModel(args):
             )
 
         # Compute prediction error
+        # Compute prediction error
         pred = model.forward(X, dayIdx)
+        log_probs = pred.log_softmax(2)   # [B, T, C]
 
-        loss = loss_ctc(
-            torch.permute(pred.log_softmax(2), [1, 0, 2]),
+        adjustedLens = ((X_len - model.kernelLen) / model.strideLen).to(torch.int32)
+
+        # Standard CTC loss
+        ctc = loss_ctc(
+            torch.permute(log_probs, [1, 0, 2]),  # [T, B, C]
             y,
-            ((X_len - model.kernelLen) / model.strideLen).to(torch.int32),
+            adjustedLens,
             y_len,
         )
-        loss = torch.sum(loss)
+        ctc = torch.sum(ctc)
+
+        # Blank emission penalty
+        lam = float(args.get("blank_emit_lambda", 0.0))
+        if lam > 0.0:
+            p_blank = log_probs[:, :, 0].exp()  # [B, T]
+            eps = 1e-6
+            # mask out padding timesteps
+            T = log_probs.size(1)
+            mask = torch.arange(T, device=log_probs.device)[None, :] < adjustedLens[:, None]
+            p_blank = p_blank.masked_select(mask)
+            blank_penalty = lam * (-torch.log(1.0 - p_blank + eps)).mean()
+            loss = ctc + blank_penalty
+        else:
+            loss = ctc
+
 
         # Backpropagation
         optimizer.zero_grad()

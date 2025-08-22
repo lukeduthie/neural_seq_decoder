@@ -131,7 +131,7 @@ trainDatasets = []
 testDatasets = []
 competitionDatasets = []
 
-dataDir = '/scratch/users/dzoltow/SpeechBCI/competitionData'
+dataDir = '/Users/lukeduthie/neural_seq_decoder-2/data/competitionData/competitionData'
 
 for dayIdx in range(len(sessionNames)):
     print(dayIdx)
@@ -145,7 +145,6 @@ for dayIdx in range(len(sessionNames)):
         dataset = getDataset(dataDir + '/competitionHoldOut/' + sessionNames[dayIdx] + '.mat')
         competitionDatasets.append(dataset)
 
-dataDir = '/scratch/users/dzoltow/SpeechBCI/competitionData'
 
 competitionDays = []
 for dayIdx in range(len(sessionNames)):
@@ -160,6 +159,6 @@ allDatasets['train'] = trainDatasets
 allDatasets['test'] = testDatasets
 allDatasets['competition'] = competitionDatasets
 
-with open('/scratch/users/dzoltow/SpeechBCI/competitionData/ptDecoder_ctc', 'wb') as handle:
+with open('data/competitionData/ptDecoder_ctc.pkl', 'wb') as handle:
     pickle.dump(allDatasets, handle)
 

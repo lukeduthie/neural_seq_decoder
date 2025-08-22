@@ -1,0 +1,3 @@
+- outputDir=outputs
+- datasetPath=/Users/lukeduthie/neural_seq_decoder-2/data/competitionData/ptDecoder_ctc.pkl
+- device=cpu

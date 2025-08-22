@@ -3,8 +3,12 @@ from torch import nn
 
 from .augmentations import GaussianSmoothing
 
-from mamba_ssm import Mamba
-from mamba_ssm.ops.selective_scan_interface import selective_scan_fn
+try:
+    from mamba_ssm import Mamba
+    HAS_MAMBA = True
+except Exception:
+    HAS_MAMBA = False
+
 
 class GRUDecoder(nn.Module):
     def __init__(
